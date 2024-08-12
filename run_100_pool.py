@@ -37,7 +37,7 @@ def client_thread(image_path, server_address):
 
     socket.close()
 
-    return len(rps_counter)  # 100
+    return len(rps_counter)
 
 
 def load_image_as_bytes(image_path):
@@ -48,17 +48,12 @@ def load_image_as_bytes(image_path):
         return img_bytes.getvalue()
 
 def run_test(image_path, server_address, num_clients=100):
-    threads = []
-    for i in range(num_clients):
-        thread = threading.Thread(target=client_thread, args=(image_path, server_address))
-        thread.start()
-        threads.append(thread)
+    # Use ProcessPoolExecutor to manage multiple client processes
+    with ProcessPoolExecutor(max_workers=num_clients) as executor:
+        futures = [executor.submit(client_thread, image_path, server_address) for _ in range(num_clients)]
+        results = [future.result() for future in futures]
 
-    # Wait for all threads to complete
-    for thread in threads:
-        thread.join()
-
-    return len(threads) * 100
+    return len(results) * 100 # if there is no error we expect each array element to have 100 nested elements, see rps_counter
 
 if __name__ == "__main__":
     image_path = "random_512x512.png"
