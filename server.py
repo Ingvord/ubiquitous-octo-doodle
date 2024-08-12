@@ -32,11 +32,9 @@ def worker(worker_id, server_address):
         # Wait for a job from the server
         image_data_bytes = socket.recv()
         print("Got bytes")
-        # Example shape, replace with actual dimensions passed as metadata if needed
-        shape = (225, 225)
 
         # Process the image data
-        result = process_image_data(image_data_bytes, shape)
+        result = np.histogram(image_data_bytes, bins=256)[0]
 
         # Send the result back to the server
         socket.send_pyobj(result)

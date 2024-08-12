@@ -31,14 +31,16 @@ def save_histogram_plot(histogram_data, output_path="histogram_plot.png"):
     plt.close()
     print(f"Histogram plot saved to {output_path}")
 
-def main(filepath, server_url, histogram_path):
+async def main(filepath, server_url, histogram_path):
     # Initialize ZeroMQ context and socket
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
     socket.connect(server_url)
 
+    image = Image.open(filepath)
+
     # Read the 2D image data
-    img_data = read_image_file(filepath)
+    img_data = np.array(image.convert("L"))
 
     # Serialize the image data
     # For example, converting numpy array to bytes
