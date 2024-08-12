@@ -71,7 +71,7 @@ def server():
     backend.connect("ipc://backend")
 
     # Start workers
-    worker_count = 4  # Adjust based on your system's cores and needs
+    worker_count = 16  # Adjust based on your system's cores and needs
     for i in range(worker_count):
         multiprocessing.Process(target=worker, args=(i, "ipc://backend")).start()
 
