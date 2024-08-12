@@ -5,11 +5,11 @@ import multiprocessing
 import threading
 import numpy as np
 
-def process_image_data(image_data_bytes, shape):
+def process_image_data(image_data_bytes):
     # Convert bytes back to numpy array
-    img_array = np.frombuffer(image_data_bytes, dtype=np.uint8).reshape(shape)
+    img_array = np.frombuffer(image_data_bytes, dtype=np.uint8)
     # Example: Calculate histogram
-    histogram = np.histogram(img_array, bins=256)[0]
+    histogram = np.histogram(img_array, bins=512)[0]
     return histogram
 
 def worker(worker_id, server_address):
@@ -32,9 +32,8 @@ def worker(worker_id, server_address):
             # Wait for a job from the server
             image_data_bytes = socket.recv()
             print("Got bytes")
-            image_data = np.frombuffer(image_data_bytes, dtype=np.uint8)
             # Process the image data
-            result = np.histogram(image_data, bins=512)[0]
+            result = process_image_data(image_data_bytes)
 
             # Send the result back to the server
             socket.send_pyobj(result)
