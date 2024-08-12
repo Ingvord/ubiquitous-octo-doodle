@@ -8,7 +8,7 @@ import numpy as np
 import io
 
 # Function to simulate a single client sending an image
-def client_thread(image_data, server_address):
+def client_thread(image_path, server_address):
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
     socket.connect(server_address)
@@ -16,9 +16,19 @@ def client_thread(image_data, server_address):
     rps_counter = []
 
     for i in range(100):
+        image = Image.open(image_path)
+
+        # Read the 2D image data
+        img_data = np.array(image.convert("L"))
+
+        # Serialize the image data
+        # For example, converting numpy array to bytes
+        img_bytes = img_data.tobytes()
+        # Load the image once to reduce IO operations
+
         # Send the image data to the server
         print("Client sending image data")
-        socket.send(image_data)
+        socket.send(img_bytes)
 
         # Wait for the server's response
         reply = socket.recv_pyobj()
@@ -38,19 +48,9 @@ def load_image_as_bytes(image_path):
         return img_bytes.getvalue()
 
 def run_test(image_path, server_address, num_clients=100):
-    image = Image.open(image_path)
-
-    # Read the 2D image data
-    img_data = np.array(image.convert("L"))
-
-    # Serialize the image data
-    # For example, converting numpy array to bytes
-    img_bytes = img_data.tobytes()
-    # Load the image once to reduce IO operations
-
     # Use ProcessPoolExecutor to manage multiple client processes
     with ProcessPoolExecutor(max_workers=num_clients) as executor:
-        futures = [executor.submit(client_thread, img_bytes, server_address) for _ in range(num_clients)]
+        futures = [executor.submit(client_thread, image_path, server_address) for _ in range(num_clients)]
         results = [future.result() for future in futures]
 
     return len(results) * 100 # if there is no error we expect each array element to have 100 nested elements, see rps_counter
