@@ -1,4 +1,6 @@
 import threading
+from concurrent.futures import ProcessPoolExecutor
+
 import zmq
 import time
 from PIL import Image
@@ -6,11 +8,12 @@ import numpy as np
 import io
 
 # Function to simulate a single client sending an image
-def client_thread(image_data, server_address, rps_counter):
+def client_thread(image_data, server_address):
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
     socket.connect(server_address)
 
+    rps_counter = []
 
     for i in range(100):
         # Send the image data to the server
@@ -23,6 +26,8 @@ def client_thread(image_data, server_address, rps_counter):
         rps_counter.append(1)  # Count this request as completed
 
     socket.close()
+
+    return len(rps_counter)
 
 
 def load_image_as_bytes(image_path):
@@ -43,19 +48,12 @@ def run_test(image_path, server_address, num_clients=100):
     img_bytes = img_data.tobytes()
     # Load the image once to reduce IO operations
 
-    rps_counter = []
+    # Use ProcessPoolExecutor to manage multiple client processes
+    with ProcessPoolExecutor(max_workers=num_clients) as executor:
+        futures = [executor.submit(client_thread, img_bytes, server_address) for _ in range(num_clients)]
+        results = [future.result() for future in futures]
 
-    threads = []
-    for i in range(num_clients):
-        thread = threading.Thread(target=client_thread, args=(img_bytes, server_address, rps_counter))
-        thread.start()
-        threads.append(thread)
-
-    # Wait for all threads to complete
-    for thread in threads:
-        thread.join()
-
-    return len(rps_counter)
+    return len(results) * 100 # if there is no error we expect each array element to have 100 nested elements, see rps_counter
 
 if __name__ == "__main__":
     image_path = "random_512x512.png"

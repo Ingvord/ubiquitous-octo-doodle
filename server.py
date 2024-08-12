@@ -17,7 +17,7 @@ def worker(worker_id, server_address):
     context = zmq.Context()
     socket = context.socket(zmq.REP)
     print(f"Worker {worker_id} is connecting to {server_address}")
-    socket.bind(server_address)
+    socket.connect(server_address)
 
     # Send a ready signal to the server
     # socket.send_json({"worker_id": worker_id, "status": "ready"})
@@ -25,19 +25,22 @@ def worker(worker_id, server_address):
 
 
     sleep(1)
-    while True:
-        print("Starting worker loop")
-        # socket.send_json({"worker_id": worker_id, "status": "ready"})
-        print("Started worker loop")
-        # Wait for a job from the server
-        image_data_bytes = socket.recv()
-        print("Got bytes")
-        image_data = np.frombuffer(image_data_bytes, dtype=np.uint8)
-        # Process the image data
-        result = np.histogram(image_data, bins=512)[0]
+    print(f"Starting worker loop {worker_id}")
+    #socket.send_json({"worker_id": worker_id, "status": "ready"})
+    try:
+        while True:
+            # Wait for a job from the server
+            image_data_bytes = socket.recv()
+            print("Got bytes")
+            image_data = np.frombuffer(image_data_bytes, dtype=np.uint8)
+            # Process the image data
+            result = np.histogram(image_data, bins=512)[0]
 
-        # Send the result back to the server
-        socket.send_pyobj(result)
+            # Send the result back to the server
+            socket.send_pyobj(result)
+    finally:
+        socket.close()
+        context.term()
 
 def peer_run(ctx, capture_server):
     """ this is the run method of the PAIR thread that logs the messages
@@ -66,7 +69,7 @@ def server():
     frontend.bind("tcp://*:5555")
 
     backend = context.socket(zmq.DEALER)
-    backend.connect("ipc://backend")
+    backend.bind("ipc://backend")
 
     # Start workers
     worker_count = 16  # Adjust based on your system's cores and needs
@@ -74,7 +77,7 @@ def server():
         multiprocessing.Process(target=worker, args=(i, "ipc://backend")).start()
 
     try:
-        zmq.proxy(frontend, backend, cap)
+        zmq.proxy(frontend, backend)
     finally:
         frontend.close()
         backend.close()
