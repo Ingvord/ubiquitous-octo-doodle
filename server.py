@@ -1,3 +1,4 @@
+import argparse
 from time import sleep
 
 import zmq
@@ -56,7 +57,7 @@ def peer_run(ctx, capture_server):
             obj = sock.recv()
         print(f"\n !!! peer_run captured message with topic {topic}, obj {obj}. !!!\n")
 
-def server():
+def server(worker_count=16):
     context = zmq.Context.instance()
     cap = context.socket(zmq.PAIR)
     cap.bind("inproc://capture")
@@ -71,7 +72,6 @@ def server():
     backend.bind("ipc://backend")
 
     # Start workers
-    worker_count = 16  # Adjust based on your system's cores and needs
     for i in range(worker_count):
         multiprocessing.Process(target=worker, args=(i, "ipc://backend")).start()
 
@@ -85,4 +85,9 @@ def server():
 
 
 if __name__ == "__main__":
-    server()
+    parser = argparse.ArgumentParser(description='Server to calculate histogram out of an image.')
+    parser.add_argument('--workers', type=int, required=True, help='Number of worker processes to spawn')
+
+    args = parser.parse_args()
+
+    server(args.workers)
