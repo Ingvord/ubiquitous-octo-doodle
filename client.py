@@ -15,7 +15,7 @@ def main(filepath):
     # Initialize ZeroMQ context and socket
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
-    socket.connect("tcp://localhost:5555")
+    socket.connect("tcp://127.0.0.1:5555")
 
     # Read the 2D image data
     img_data = read_image_file(filepath)
