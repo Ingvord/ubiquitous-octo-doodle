@@ -32,9 +32,9 @@ def worker(worker_id, server_address):
         # Wait for a job from the server
         image_data_bytes = socket.recv()
         print("Got bytes")
-
+        image_data = np.frombuffer(image_data_bytes, dtype=np.uint8)
         # Process the image data
-        result = np.histogram(image_data_bytes, bins=256)[0]
+        result = np.histogram(image_data, bins=512)[0]
 
         # Send the result back to the server
         socket.send_pyobj(result)
